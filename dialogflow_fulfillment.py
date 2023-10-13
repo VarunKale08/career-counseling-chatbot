@@ -3,7 +3,7 @@ import requests
 
 app = Flask(__name__)
 
-@app.route('/webhook', methods=['POST'])
+@app.route('/', methods=['POST'])
 def webhook():
     data = request.get_json(silent=True)
     intent = data['queryResult']['intent']['displayName']
