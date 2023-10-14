@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
 # Read the CSV Data
-df = pd.read_csv('/content/Sheet1.csv')
+df = pd.read_csv('/dataset.csv')
 
 # Drop any duplicate rows, if any
 df = df.drop_duplicates()

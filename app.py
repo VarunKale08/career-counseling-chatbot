@@ -1,7 +1,8 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 import joblib
+import requests
 
 app = Flask(__name__)
 
@@ -10,7 +11,7 @@ svm_model = joblib.load('career_counseling_model.joblib')
 
 # Load your dataset
 # Assuming your dataset is in CSV format
-dataset = pd.read_csv('your_dataset.csv')
+dataset = pd.read_csv('dataset.csv')  # Updated file name
 
 # Function to preprocess the data
 def preprocess_data(df):
@@ -38,7 +39,27 @@ def index():
 @app.route('/get_bot_response', methods=['POST'])
 def get_bot_response():
     user_text = request.form['userText']
-    return jsonify({'response': user_text})
+    
+    # Assuming you want to call the Dialogflow webhook here
+    dialogflow_response = get_dialogflow_response(user_text)
+    
+    return jsonify({'response': dialogflow_response})
+
+def get_dialogflow_response(user_text):
+    # Assuming your Dialogflow webhook URL is 'https://career-counseling-app.azurewebsites.net/webhook'
+    dialogflow_url = 'https://career-counseling-app.azurewebsites.net/webhook'
+    
+    data = {
+        'queryResult': {
+            'intent': {
+                'displayName': 'GetCareerSuggestion'
+            },
+            'queryText': user_text
+        }
+    }
+    
+    response = requests.post(dialogflow_url, json=data)
+    return response.json()['fulfillmentText']
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
