@@ -1,13 +1,16 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, request, jsonify
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.svm import SVC
 import joblib
 
 app = Flask(__name__)
 
 # Load the trained SVM model
 svm_model = joblib.load('career_counseling_model.joblib')
+
+# Load your dataset
+# Assuming your dataset is in CSV format
+dataset = pd.read_csv('your_dataset.csv')
 
 # Function to preprocess the data
 def preprocess_data(df):
@@ -17,8 +20,13 @@ def preprocess_data(df):
     df[numerical_columns] = scaler.fit_transform(df[numerical_columns])
     return df
 
-# Function to get career suggestion
-def get_career_suggestion(user_input):
+def get_career_suggestion(maths, science, social_studies, english):
+    user_input = pd.DataFrame({
+        'Mathematics': [maths],
+        'Science': [science],
+        'Social_Studies': [social_studies],
+        'English': [english]
+    })
     user_input = preprocess_data(user_input)
     prediction = svm_model.predict(user_input)
     return prediction[0]
@@ -30,15 +38,30 @@ def index():
 @app.route('/get_bot_response', methods=['POST'])
 def get_bot_response():
     user_text = request.form['userText']
-    # Add your bot logic here to process user_text and get bot's response
-    # For now, I'll just echo back the user's input
     return jsonify({'response': user_text})
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    user_input = request.json  # Assuming it contains user's input
-    interested_field = get_career_suggestion(user_input)
-    return jsonify({'interested_field': interested_field})
+    req = request.get_json(force=True)
+    intent = req['queryResult']['intent']['displayName']
+    
+    if intent == 'CareerGuidanceIntent':
+        marks_in_maths = req['queryResult']['parameters']['marks_in_maths']
+        marks_in_science = req['queryResult']['parameters']['marks_in_science']
+        marks_in_social_studies = req['queryResult']['parameters']['marks_in_social_studies']
+        marks_in_english = req['queryResult']['parameters']['marks_in_english']
+        
+        suggestion = get_career_suggestion(marks_in_maths, marks_in_science, marks_in_social_studies, marks_in_english)
+        
+        response = {
+            'fulfillmentText': f'Based on your marks, I suggest exploring careers in the field of {suggestion}.'
+        }
+    else:
+        response = {
+            'fulfillmentText': 'I\'m sorry, I don\'t understand that.'
+        }
+    
+    return jsonify(response)
 
 if __name__ == '__main__':
     app.run(debug=True)
